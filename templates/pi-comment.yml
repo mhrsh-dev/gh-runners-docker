@@ -1,0 +1,31 @@
+# Copy to .github/workflows/pi-comment.yml in any repo that has pi runners.
+# Requires: repo variable PI_DEVS (JSON array of allowed logins),
+#           repo secret PI_GH_TOKEN (PAT used for push/PR so pi's PRs can
+#           trigger further workflows; GITHUB_TOKEN-created PRs cannot).
+name: pi
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  pi:
+    if: |
+      contains(fromJson(vars.PI_DEVS), github.actor) &&
+      contains(github.event.comment.body, '/pi')
+    runs-on: [self-hosted, pi-agent]
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PI_GH_TOKEN }}
+      - uses: mhrsh-dev/gh-runners-docker/actions/pi@main
+        with:
+          mode: comment
+          github_token: ${{ secrets.PI_GH_TOKEN }}

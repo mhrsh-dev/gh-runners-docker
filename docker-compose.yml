@@ -1,0 +1,87 @@
+# Persistent self-hosted runners for one repository.
+# Bring up with scripts/up.sh <repo> so each repo gets its own compose project.
+x-runner: &runner
+  restart: always
+  environment: &runner-env
+    ACCESS_TOKEN: ${GH_PAT:?set GH_PAT in envs/<repo>.env}
+    RUNNER_SCOPE: repo
+    REPO_URL: ${REPO_URL:?set REPO_URL in envs/<repo>.env}
+    # Reuse the registration across restarts instead of re-registering.
+    CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /runner-config
+    DISABLE_AUTOMATIC_DEREGISTRATION: "true"
+    RUNNER_WORKDIR: /_work
+
+services:
+  base:
+    <<: *runner
+    image: gh-runners/base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+    environment:
+      <<: *runner-env
+      RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-base
+      LABELS: docker,base
+    volumes:
+      - base-config:/runner-config
+      - base-work:/_work
+
+  pi:
+    <<: *runner
+    image: gh-runners/pi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.pi
+      args:
+        BASE_IMAGE: gh-runners/base:latest
+    depends_on:
+      - base
+    environment:
+      <<: *runner-env
+      RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-pi
+      LABELS: docker,pi-agent
+    volumes:
+      - pi-config:/runner-config
+      - pi-work:/_work
+      - pi-agent-home:/pi-home
+
+  # Same image as `pi`, separate runner so long autonomous jobs never block
+  # interactive /pi replies.
+  pi-worker:
+    <<: *runner
+    image: gh-runners/pi:latest
+    depends_on:
+      - pi
+    environment:
+      <<: *runner-env
+      RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-pi-worker
+      LABELS: docker,pi-worker
+    volumes:
+      - pi-worker-config:/runner-config
+      - pi-worker-work:/_work
+      - pi-agent-home:/pi-home
+
+  # Not a runner: one-time interactive `pi` for /login. See scripts/login-pi.sh.
+  pi-login:
+    image: gh-runners/pi:latest
+    profiles: ["login"]
+    entrypoint: ["pi"]
+    stdin_open: true
+    tty: true
+    environment:
+      PI_CODING_AGENT_DIR: /pi-home/agent
+      TERM: ${TERM:-xterm-256color}
+    volumes:
+      - pi-agent-home:/pi-home
+
+volumes:
+  base-config:
+  base-work:
+  pi-config:
+  pi-work:
+  pi-worker-config:
+  pi-worker-work:
+  # Shared by pi and pi-worker. Holds the Claude OAuth credentials from /login.
+  pi-agent-home:
+    name: pi-agent-home
+    external: false

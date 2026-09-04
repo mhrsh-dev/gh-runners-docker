@@ -1,0 +1,19 @@
+# Smoke test: proves label routing to the plain runner container.
+name: hello-base
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  hello:
+    runs-on: [self-hosted, base]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report runner identity
+        run: |
+          echo "runner name : $RUNNER_NAME"
+          echo "os/arch     : $RUNNER_OS/$RUNNER_ARCH"
+          echo "container   : $(hostname)"
+          echo "tools       : $(git --version), $(gh --version | head -1), jq $(jq --version)"

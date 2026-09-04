@@ -1,0 +1,27 @@
+# Copy to .github/workflows/pi-auto.yml. Labelling an open issue `pi-auto`
+# makes the pi-worker runner attempt a draft PR for it.
+name: pi-auto
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  pi-auto:
+    if: |
+      github.event.label.name == 'pi-auto' &&
+      contains(fromJson(vars.PI_DEVS), github.actor)
+    runs-on: [self-hosted, pi-worker]
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PI_GH_TOKEN }}
+      - uses: mhrsh-dev/gh-runners-docker/actions/pi@main
+        with:
+          mode: auto
+          github_token: ${{ secrets.PI_GH_TOKEN }}

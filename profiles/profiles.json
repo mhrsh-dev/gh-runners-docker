@@ -1,0 +1,18 @@
+{
+  "$comment": "Command registry. Adding a command = one entry here + one prompt file. No code changes.",
+  "defaultCommand": "/pi",
+  "commands": {
+    "/pi": "pi",
+    "/pi-auto": "pi-auto"
+  },
+  "profiles": {
+    "pi": {
+      "prompt": "pi.md",
+      "flags": ["--thinking", "medium"]
+    },
+    "pi-auto": {
+      "prompt": "pi-auto.md",
+      "flags": ["--thinking", "medium"]
+    }
+  }
+}

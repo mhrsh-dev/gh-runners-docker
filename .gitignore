@@ -1,0 +1,3 @@
+envs/*.env
+!envs/example.env
+*.jsonl
