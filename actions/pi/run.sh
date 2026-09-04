@@ -55,10 +55,12 @@ prompt_file=$(jq -r --arg p "$profile" '.profiles[$p].prompt // empty' "$registr
 mapfile -t extra_flags < <(jq -r --arg p "$profile" '.profiles[$p].flags[]? // empty' "$registry")
 
 # -------------------------------------------------------------- git / gh auth
+# Scoped to the checkout, never --global: this script must be harmless if it is
+# ever run outside the runner container.
 git config --global --add safe.directory "$repo_root"
-git config --global user.name "pi-agent[bot]"
-git config --global user.email "pi-agent@users.noreply.github.com"
-git config --global \
+git -C "$repo_root" config user.name "pi-agent[bot]"
+git -C "$repo_root" config user.email "pi-agent@users.noreply.github.com"
+git -C "$repo_root" config \
   "url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" \
   "https://github.com/"
 
