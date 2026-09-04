@@ -92,7 +92,7 @@ pi --mode json -p -a \
   --append-system-prompt "$profiles_dir/$prompt_file" \
   --append-system-prompt "$context" \
   ${extra_flags[@]+"${extra_flags[@]}"} \
-  -- "$query" > "$events" 2> "$out_dir/pi-stderr.log"
+  -- "$query" < /dev/null > "$events" 2> "$out_dir/pi-stderr.log"
 pi_rc=$?
 set -e
 tail -n 40 "$out_dir/pi-stderr.log" >&2 || true
@@ -124,7 +124,8 @@ pi_error=$(jq -rs '
   | .errorMessage // "unknown error"
 ' "$events" 2>/dev/null || true)
 
-if [ ! -s "$answer" ]; then
+# A whitespace-only answer counts as no answer.
+if ! grep -q "[^[:space:]]" "$answer"; then
   {
     echo "pi produced no final message (exit $pi_rc)."
     if [ -n "$pi_error" ]; then
@@ -136,7 +137,7 @@ if [ ! -s "$answer" ]; then
     echo
     echo "[Run log]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) — the raw event stream is attached to that run as an artifact."
   } > "$answer"
-  [ "$pi_rc" -eq 0 ] && pi_rc=1
+  if [ "$pi_rc" -eq 0 ]; then pi_rc=1; fi
 fi
 
 # GitHub rejects comments over 65536 characters.
