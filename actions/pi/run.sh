@@ -130,10 +130,16 @@ pi_error=$(jq -rs '
 if ! grep -q "[^[:space:]]" "$answer"; then
   {
     echo "pi produced no final message (exit $pi_rc)."
-    if [ -n "$pi_error" ]; then
+    # Structured provider error if pi got far enough to record one, otherwise
+    # whatever it said on stderr (startup failures such as a missing login).
+    reason=$pi_error
+    if [ -z "$reason" ] && [ -s "$out_dir/pi-stderr.log" ]; then
+      reason=$(tail -n 20 "$out_dir/pi-stderr.log")
+    fi
+    if [ -n "$reason" ]; then
       echo
       echo '```'
-      echo "$pi_error"
+      echo "$reason"
       echo '```'
     fi
     echo
