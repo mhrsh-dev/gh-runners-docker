@@ -17,4 +17,5 @@ docker run --rm -it \
   -e PI_CODING_AGENT_DIR=/pi-home/agent \
   -e TERM="${TERM:-xterm-256color}" \
   -v pi-agent-home:/pi-home \
-  gh-runners/pi:latest pi
+  --entrypoint pi \
+  gh-runners/pi:latest

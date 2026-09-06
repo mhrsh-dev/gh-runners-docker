@@ -4,4 +4,5 @@ set -euo pipefail
 docker run --rm \
   -e PI_CODING_AGENT_DIR=/pi-home/agent \
   -v pi-agent-home:/pi-home \
-  gh-runners/pi:latest pi auth check --provider anthropic --json
+  --entrypoint pi \
+  gh-runners/pi:latest auth check --provider anthropic --json
