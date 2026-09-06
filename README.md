@@ -35,6 +35,10 @@ runner sets coexist on one machine. Runner registration lives in named volumes
 with `DISABLE_AUTOMATIC_DEREGISTRATION=true`: restarting a container reuses the
 same runner instead of re-registering.
 
+After an ungraceful stop a runner can log `A session for this runner already
+exists` and stay `offline` while GitHub still holds the old session. It retries
+on its own; `docker restart <container>` clears it immediately.
+
 pi's credentials live in the shared `pi-agent-home` Docker volume, never in an
 env var and never bind-mounted from the host. The OAuth token refreshes itself.
 
