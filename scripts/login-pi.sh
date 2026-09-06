@@ -8,9 +8,9 @@
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 
-docker image inspect gh-runners/pi:latest >/dev/null 2>&1 || {
+docker image inspect gh-runners/agent:latest >/dev/null 2>&1 || {
   docker build -t gh-runners/base:latest -f "$root/Dockerfile.base" "$root"
-  docker build -t gh-runners/pi:latest -f "$root/Dockerfile.pi" "$root"
+  docker build -t gh-runners/agent:latest -f "$root/Dockerfile.agent" "$root"
 }
 
 docker run --rm -it \
@@ -18,4 +18,4 @@ docker run --rm -it \
   -e TERM="${TERM:-xterm-256color}" \
   -v pi-agent-home:/pi-home \
   --entrypoint pi \
-  gh-runners/pi:latest
+  gh-runners/agent:latest

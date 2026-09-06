@@ -1,4 +1,4 @@
-# Runner image with the pi coding agent installed.
+# Runner image carrying both agent engines: pi and Claude Code.
 ARG BASE_IMAGE=gh-runners/base:latest
 FROM ${BASE_IMAGE}
 
@@ -15,3 +15,8 @@ RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION
 # the host. Kept out of the runner user's HOME so a job cannot clobber it.
 ENV PI_CODING_AGENT_DIR=/pi-home/agent
 RUN mkdir -p /pi-home/agent && chmod -R 0777 /pi-home
+
+# Second engine: Claude Code. First-party, so a Claude subscription covers
+# headless CI use; it authenticates from CLAUDE_CODE_OAUTH_TOKEN in the job
+# environment and needs nothing in the credentials volume.
+RUN npm install -g --ignore-scripts @anthropic-ai/claude-code

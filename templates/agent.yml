@@ -1,8 +1,10 @@
-# Copy to .github/workflows/pi-comment.yml in any repo that has pi runners.
+# Copy to .github/workflows/agent.yml in any repo that has agent runners.
 # Requires: repo variable PI_DEVS (JSON array of allowed logins),
-#           repo secret PI_GH_TOKEN (PAT used for push/PR so pi's PRs can
-#           trigger further workflows; GITHUB_TOKEN-created PRs cannot).
-name: pi
+#           repo secret PI_GH_TOKEN (PAT used for push/PR so the agent's PRs can
+#           trigger further workflows; GITHUB_TOKEN-created PRs cannot),
+#           repo secret CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) for
+#           the /claude commands.
+name: agent
 
 on:
   issue_comment:
@@ -11,11 +13,12 @@ on:
     types: [created]
 
 jobs:
-  pi:
+  agent:
     if: |
       contains(fromJson(vars.PI_DEVS), github.actor) &&
-      contains(github.event.comment.body, '/pi')
-    runs-on: [self-hosted, pi-agent]
+      (contains(github.event.comment.body, '/pi') ||
+       contains(github.event.comment.body, '/claude'))
+    runs-on: [self-hosted, agent]
     permissions:
       contents: write
       issues: write
@@ -29,3 +32,4 @@ jobs:
         with:
           mode: comment
           github_token: ${{ secrets.PI_GH_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

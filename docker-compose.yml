@@ -26,44 +26,44 @@ services:
       - base-config:/runner-config
       - base-work:/_work
 
-  pi:
+  agent:
     <<: *runner
-    image: gh-runners/pi:latest
+    image: gh-runners/agent:latest
     build:
       context: .
-      dockerfile: Dockerfile.pi
+      dockerfile: Dockerfile.agent
       args:
         BASE_IMAGE: gh-runners/base:latest
     depends_on:
       - base
     environment:
       <<: *runner-env
-      RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-pi
-      LABELS: docker,pi-agent
+      RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-agent
+      LABELS: docker,agent
     volumes:
-      - pi-config:/runner-config
-      - pi-work:/_work
+      - agent-config:/runner-config
+      - agent-work:/_work
       - pi-agent-home:/pi-home
 
-  # Same image as `pi`, separate runner so long autonomous jobs never block
-  # interactive /pi replies.
-  pi-worker:
+  # Same image as `agent`, separate runner so long autonomous jobs never block
+  # interactive comment replies.
+  agent-worker:
     <<: *runner
-    image: gh-runners/pi:latest
+    image: gh-runners/agent:latest
     depends_on:
-      - pi
+      - agent
     environment:
       <<: *runner-env
-      RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-pi-worker
-      LABELS: docker,pi-worker
+      RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-agent-worker
+      LABELS: docker,agent-worker
     volumes:
-      - pi-worker-config:/runner-config
-      - pi-worker-work:/_work
+      - agent-worker-config:/runner-config
+      - agent-worker-work:/_work
       - pi-agent-home:/pi-home
 
   # Not a runner: one-time interactive `pi` for /login. See scripts/login-pi.sh.
   pi-login:
-    image: gh-runners/pi:latest
+    image: gh-runners/agent:latest
     profiles: ["login"]
     entrypoint: ["pi"]
     stdin_open: true
@@ -77,11 +77,12 @@ services:
 volumes:
   base-config:
   base-work:
-  pi-config:
-  pi-work:
-  pi-worker-config:
-  pi-worker-work:
-  # Shared by pi and pi-worker. Holds the Claude OAuth credentials from /login.
+  agent-config:
+  agent-work:
+  agent-worker-config:
+  agent-worker-work:
+  # Shared by both agent runners. Holds the pi provider credentials from /login;
+  # Claude Code authenticates from CLAUDE_CODE_OAUTH_TOKEN instead.
   pi-agent-home:
     name: pi-agent-home
     external: false

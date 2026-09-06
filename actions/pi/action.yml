@@ -1,5 +1,5 @@
-name: "pi agent"
-description: "Run the pi coding agent on a self-hosted pi runner and post its answer as a comment."
+name: "coding agent"
+description: "Run a coding agent (pi or Claude Code) on a self-hosted agent runner and post its answer as a comment."
 inputs:
   mode:
     description: "comment (dispatch on a /command in the triggering comment) or auto (label-driven)."
@@ -9,19 +9,23 @@ inputs:
     description: "Profile to force. Defaults to dispatch for mode=comment, pi-auto for mode=auto."
     required: false
     default: ""
+  claude_code_oauth_token:
+    description: "Token from `claude setup-token`. Required by profiles whose engine is claude."
+    required: false
+    default: ""
   github_token:
     description: "Token used for gh, git push and posting the comment. Use a PAT if PRs pi opens should trigger workflows."
     required: true
   post_comment:
-    description: "Post pi's final message as a comment."
+    description: "Post the agent's final message as a comment."
     required: false
     default: "true"
 outputs:
   answer_file:
-    description: "Path to pi's final message."
+    description: "Path to the agent's final message."
     value: ${{ steps.pi.outputs.answer_file }}
   events_file:
-    description: "Path to the raw pi JSON event stream."
+    description: "Path to the engine's raw structured output."
     value: ${{ steps.pi.outputs.events_file }}
 runs:
   using: composite
@@ -33,6 +37,7 @@ runs:
         PI_PROFILE: ${{ inputs.profile }}
         PI_POST_COMMENT: ${{ inputs.post_comment }}
         GH_TOKEN: ${{ inputs.github_token }}
+        CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude_code_oauth_token }}
         PI_ACTION_DIR: ${{ github.action_path }}
       run: bash "${{ github.action_path }}/run.sh"
     - uses: actions/upload-artifact@v4

@@ -1,18 +1,33 @@
 {
-  "$comment": "Command registry. Adding a command = one entry here + one prompt file. No code changes.",
+  "$comment": "Command registry. Adding a command = one entry here + a prompt file. No code changes.",
   "defaultCommand": "/pi",
+  "defaultAutoCommand": "/claude-auto",
   "commands": {
     "/pi": "pi",
-    "/pi-auto": "pi-auto"
+    "/pi-auto": "pi-auto",
+    "/claude": "claude",
+    "/claude-auto": "claude-auto"
   },
   "profiles": {
     "pi": {
-      "prompt": "pi.md",
+      "engine": "pi",
+      "prompt": "comment.md",
       "flags": ["--thinking", "medium"]
     },
     "pi-auto": {
-      "prompt": "pi-auto.md",
+      "engine": "pi",
+      "prompt": "auto.md",
       "flags": ["--thinking", "medium"]
+    },
+    "claude": {
+      "engine": "claude",
+      "prompt": "comment.md",
+      "flags": []
+    },
+    "claude-auto": {
+      "engine": "claude",
+      "prompt": "auto.md",
+      "flags": []
     }
   }
 }

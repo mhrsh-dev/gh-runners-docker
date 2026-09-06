@@ -1,17 +1,19 @@
-# Copy to .github/workflows/pi-auto.yml. Labelling an open issue `pi-auto`
-# makes the pi-worker runner attempt a draft PR for it.
-name: pi-auto
+# Copy to .github/workflows/agent-auto.yml. Labelling an open issue `pi-auto`
+# makes the agent-worker runner attempt a draft PR for it. The engine used is
+# whatever profiles.json maps `defaultAutoCommand` to; override it with the
+# `profile` input (e.g. profile: pi-auto).
+name: agent-auto
 
 on:
   issues:
     types: [labeled]
 
 jobs:
-  pi-auto:
+  agent-auto:
     if: |
       github.event.label.name == 'pi-auto' &&
       contains(fromJson(vars.PI_DEVS), github.actor)
-    runs-on: [self-hosted, pi-worker]
+    runs-on: [self-hosted, agent-worker]
     permissions:
       contents: write
       issues: write
@@ -25,3 +27,4 @@ jobs:
         with:
           mode: auto
           github_token: ${{ secrets.PI_GH_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

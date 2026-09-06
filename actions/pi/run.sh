@@ -36,7 +36,7 @@ actor=${GITHUB_ACTOR:-unknown}
 profile=${PI_PROFILE:-}
 if [ -z "$profile" ]; then
   if [ "${PI_MODE:-comment}" = "auto" ]; then
-    profile=$(jq -r '.commands["/pi-auto"] // "pi-auto"' "$registry")
+    profile=$(jq -r '.commands[.defaultAutoCommand] // "pi-auto"' "$registry")
   else
     profile=$(jq -rn \
       --slurpfile reg "$registry" \
@@ -52,7 +52,9 @@ echo "profile=$profile"
 
 prompt_file=$(jq -r --arg p "$profile" '.profiles[$p].prompt // empty' "$registry")
 [ -n "$prompt_file" ] || { echo "::error::unknown profile: $profile"; exit 1; }
+engine=$(jq -r --arg p "$profile" '.profiles[$p].engine // "pi"' "$registry")
 mapfile -t extra_flags < <(jq -r --arg p "$profile" '.profiles[$p].flags[]? // empty' "$registry")
+echo "engine=$engine"
 
 # -------------------------------------------------------------- git / gh auth
 # Scoped to the checkout, never --global: this script must be harmless if it is
@@ -86,52 +88,85 @@ else
   query="$comment_body"
 fi
 
-# ------------------------------------------------------------------- run pi
+# ---------------------------------------------------------------- run engine
+# Each engine gets the same two system-prompt appends and the same query, and
+# leaves its final answer in $answer. Both read that answer out of the engine's
+# own structured output, never out of prose.
 cd "$repo_root"
-set +e
-pi --mode json -p -a \
-  --no-session \
-  --append-system-prompt "$profiles_dir/$prompt_file" \
-  --append-system-prompt "$context" \
-  ${extra_flags[@]+"${extra_flags[@]}"} \
-  -- "$query" < /dev/null > "$events" 2> "$out_dir/pi-stderr.log"
-pi_rc=$?
-set -e
-tail -n 40 "$out_dir/pi-stderr.log" >&2 || true
+stderr_log="$out_dir/pi-stderr.log"
 
-# ----------------------------------------------------- final message (structured)
-# message_end carries the final authoritative assistant message (docs/json.md).
-jq -rs '
-  [ .[]
-    | select(.type == "message_end")
-    | .message
-    | select(.role == "assistant")
-  ]
-  | last
-  | (.content // [])
-  | map(select(.type == "text") | .text)
-  | join("\n")
-' "$events" > "$answer" || true
+case "$engine" in
+  pi)
+    set +e
+    pi --mode json -p -a \
+      --no-session \
+      --append-system-prompt "$profiles_dir/$prompt_file" \
+      --append-system-prompt "$context" \
+      ${extra_flags[@]+"${extra_flags[@]}"} \
+      -- "$query" < /dev/null > "$events" 2> "$stderr_log"
+    pi_rc=$?
+    set -e
+    # message_end carries the final authoritative assistant message (docs/json.md).
+    jq -rs '
+      [ .[]
+        | select(.type == "message_end")
+        | .message
+        | select(.role == "assistant")
+      ]
+      | last
+      | (.content // [])
+      | map(select(.type == "text") | .text)
+      | join("\n")
+    ' "$events" > "$answer" || true
+    ;;
+  claude)
+    : "${CLAUDE_CODE_OAUTH_TOKEN:?claude engine needs a CLAUDE_CODE_OAUTH_TOKEN (claude setup-token)}"
+    set +e
+    claude -p --output-format json \
+      --permission-mode bypassPermissions \
+      --append-system-prompt "$(cat "$profiles_dir/$prompt_file" "$context")" \
+      ${extra_flags[@]+"${extra_flags[@]}"} \
+      -- "$query" < /dev/null > "$events" 2> "$stderr_log"
+    pi_rc=$?
+    set -e
+    # -p --output-format json emits one object; .result is the final answer,
+    # and is_error marks a failed run (the text then describes the failure).
+    jq -r 'select(.is_error != true) | .result // empty' "$events" > "$answer" || true
+    ;;
+  *)
+    echo "::error::unknown engine: $engine"
+    exit 1
+    ;;
+esac
+tail -n 40 "$stderr_log" >&2 || true
 
-# pi exits 0 even when the provider rejected the request, so failure is read
-# from the last assistant message's structured stopReason/errorMessage.
-pi_error=$(jq -rs '
-  [ .[]
-    | select(.type == "message_end")
-    | .message
-    | select(.role == "assistant")
-  ]
-  | last
-  | select(.stopReason == "error")
-  | .errorMessage // "unknown error"
-' "$events" 2>/dev/null || true)
+# An engine can exit 0 after the provider rejected the request, so failure is
+# read from its own structured error fields.
+case "$engine" in
+  pi)
+    pi_error=$(jq -rs '
+      [ .[]
+        | select(.type == "message_end")
+        | .message
+        | select(.role == "assistant")
+      ]
+      | last
+      | select(.stopReason == "error")
+      | .errorMessage // "unknown error"
+    ' "$events" 2>/dev/null || true)
+    ;;
+  claude)
+    pi_error=$(jq -r 'select(.is_error == true) | .result // .subtype // "unknown error"' \
+      "$events" 2>/dev/null || true)
+    ;;
+esac
 
 # A whitespace-only answer counts as no answer.
 if ! grep -q "[^[:space:]]" "$answer"; then
   {
-    echo "pi produced no final message (exit $pi_rc)."
-    # Structured provider error if pi got far enough to record one, otherwise
-    # whatever it said on stderr (startup failures such as a missing login).
+    echo "$engine produced no final message (exit $pi_rc)."
+    # Structured provider error if the engine got far enough to record one,
+    # otherwise its stderr (startup failures such as a missing login).
     reason=$pi_error
     if [ -z "$reason" ] && [ -s "$out_dir/pi-stderr.log" ]; then
       reason=$(tail -n 20 "$out_dir/pi-stderr.log")
