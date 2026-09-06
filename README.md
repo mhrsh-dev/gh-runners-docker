@@ -103,6 +103,28 @@ build on a feature branch behind a draft PR after a human confirms) — and then
 state explicitly that the human's instructions override all of it. Nothing is
 enforced in code, so the agent stays agentic.
 
+## Coexisting with the Claude GitHub App
+
+Both can run in the same repository. They stay apart by construction:
+
+| | Claude GitHub App | this |
+|---|---|---|
+| Trigger | `@claude` mention, `claude` label | `/pi`, `/claude`, `pi-auto` label |
+| Runner | `ubuntu-latest` | self-hosted `agent` / `agent-worker` |
+| Commits as | `claude[bot]` | `pi-agent[bot]` |
+
+They share the `CLAUDE_CODE_OAUTH_TOKEN` secret; one token serves both.
+
+Two crossings are worth guarding, because each side's replies are just comments:
+
+- An app reply that quotes `/claude` would trigger this workflow. The workflow
+  skips comments whose author is an app (`github.event.comment.user.type`), and
+  requires the command token to stand alone.
+- A reply from here that mentions `@claude` would trigger the app. The prompt
+  profiles tell the agent not to `@`-mention anyone. That is a soft rule like
+  every other one, so if you want it enforced, strip mentions from `answer.md`
+  in `actions/pi/run.sh` before it is posted.
+
 ## Security
 
 - Keep self-hosted runners off public repos that accept fork PRs: a fork's

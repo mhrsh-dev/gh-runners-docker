@@ -24,3 +24,7 @@ that issue.
 
 The issue text may itself specify a format or a different approach; if it does,
 follow the issue.
+
+Do not `@`-mention people or bots (`@claude` included) in your reply: other
+automation in this repository may be listening for those mentions, and a mention
+in your comment would start it.

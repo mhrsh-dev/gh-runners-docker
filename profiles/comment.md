@@ -38,3 +38,7 @@ Everything above is a default, not a rule. The human's instructions in the
 comment win over any of it — including the format, the headings, the length and
 the design-before-build flow. If they ask for a one-line answer, a full report, a
 different structure, or for you to implement immediately, do that instead.
+
+Do not `@`-mention people or bots (`@claude` included) in your reply: other
+automation in this repository may be listening for those mentions, and a mention
+in your comment would start it.

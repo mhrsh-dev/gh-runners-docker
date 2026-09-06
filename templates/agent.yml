@@ -1,4 +1,9 @@
 # Copy to .github/workflows/agent.yml in any repo that has agent runners.
+#
+# Coexists with the Claude GitHub App: that app answers `@claude` on
+# ubuntu-latest and commits as claude[bot], this answers `/claude` and `/pi` on
+# self-hosted runners and commits as pi-agent[bot]. Comments written by apps are
+# skipped here so an app reply quoting `/claude` cannot trigger this workflow.
 # Requires: repo variable PI_DEVS (JSON array of allowed logins),
 #           repo secret PI_GH_TOKEN (PAT used for push/PR so the agent's PRs can
 #           trigger further workflows; GITHUB_TOKEN-created PRs cannot),
@@ -16,6 +21,7 @@ jobs:
   agent:
     if: |
       contains(fromJson(vars.PI_DEVS), github.actor) &&
+      github.event.comment.user.type != 'Bot' &&
       !contains(github.event.comment.body, '<!-- agent-reply -->') &&
       (contains(github.event.comment.body, '/pi') ||
        contains(github.event.comment.body, '/claude'))
