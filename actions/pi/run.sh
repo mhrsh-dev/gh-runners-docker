@@ -34,18 +34,21 @@ actor=${GITHUB_ACTOR:-unknown}
 # Longest-match a registered command token against the human's comment.
 # Adding /pi-plan later is one entry in profiles.json plus one prompt file.
 profile=${PI_PROFILE:-}
+command_token=""
+if [ "${PI_MODE:-comment}" = "comment" ]; then
+  command_token=$(jq -rn \
+    --slurpfile reg "$registry" \
+    --arg body "$comment_body" \
+    '($reg[0].commands) as $cmds
+     | ($body | [splits("[[:space:]]+")]) as $tokens
+     | [ $tokens[] | select($cmds[.] != null) ]
+     | sort_by(length) | last // $reg[0].defaultCommand')
+fi
 if [ -z "$profile" ]; then
   if [ "${PI_MODE:-comment}" = "auto" ]; then
     profile=$(jq -r '.commands[.defaultAutoCommand] // "pi-auto"' "$registry")
   else
-    profile=$(jq -rn \
-      --slurpfile reg "$registry" \
-      --arg body "$comment_body" \
-      '($reg[0].commands) as $cmds
-       | ($body | [splits("[[:space:]]+")]) as $tokens
-       | [ $tokens[] | select($cmds[.] != null) ]
-       | sort_by(length) | last as $hit
-       | if $hit then $cmds[$hit] else $cmds[$reg[0].defaultCommand] end')
+    profile=$(jq -r --arg c "$command_token" '.commands[$c] // .commands[.defaultCommand]' "$registry")
   fi
 fi
 echo "profile=$profile"
@@ -83,9 +86,21 @@ git -C "$repo_root" config \
 if [ "${PI_MODE:-comment}" = "auto" ]; then
   query="Handle issue #$issue_number as described in your instructions."
 else
-  # The comment goes to pi verbatim, command token and all. No extraction, so a
-  # human can phrase the request however they like.
+  # The comment goes to the engine as written, minus a leading command token:
+  # Claude Code reads a prompt that starts with "/" as one of its own slash
+  # commands. A token anywhere else is left alone.
   query="$comment_body"
+  trimmed=${query#"${query%%[![:space:]]*}"}
+  case "$trimmed" in
+    "$command_token"|"$command_token"[[:space:]]*)
+      query=${trimmed#"$command_token"}
+      query=${query#"${query%%[![:space:]]*}"}
+      ;;
+  esac
+  # A bare command with nothing after it still needs a task.
+  if ! printf '%s' "$query" | grep -q "[^[:space:]]"; then
+    query="Respond to thread #$issue_number as described in your instructions."
+  fi
 fi
 
 # ---------------------------------------------------------------- run engine
