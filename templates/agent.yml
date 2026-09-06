@@ -16,6 +16,7 @@ jobs:
   agent:
     if: |
       contains(fromJson(vars.PI_DEVS), github.actor) &&
+      !contains(github.event.comment.body, '<!-- agent-reply -->') &&
       (contains(github.event.comment.body, '/pi') ||
        contains(github.event.comment.body, '/claude'))
     runs-on: [self-hosted, agent]

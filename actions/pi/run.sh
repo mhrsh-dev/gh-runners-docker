@@ -206,6 +206,10 @@ if [ "$(wc -c < "$answer")" -gt 65000 ]; then
   mv "$answer.cut" "$answer"
 fi
 
+# Marker so a reply that happens to mention a command cannot retrigger the
+# workflow. Workflows skip any comment containing it; humans never see it.
+printf '\n\n<!-- agent-reply -->\n' >> "$answer"
+
 if [ "${PI_POST_COMMENT:-true}" = "true" ]; then
   jq -n --rawfile body "$answer" '{body: $body}' \
     | gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --input -

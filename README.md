@@ -108,6 +108,10 @@ enforced in code, so the agent stays agentic.
 - Neither engine is sandboxed, and both run with permission checks off. The
   container is the boundary: no host bind mounts, no host `~/.pi/agent`, no
   Docker socket.
+- The agent posts as the owner of `PI_GH_TOKEN`, so its own replies pass the
+  allowlist. Every reply carries a hidden `<!-- agent-reply -->` marker and the
+  workflow skips comments containing it; without that guard, a reply that
+  mentions a command retriggers the workflow in a loop.
 - Issue and comment text is untrusted input to an agent that can push. `/pi` is
   gated on an allowlist of logins, and `PI_GH_TOKEN` should carry the smallest
   scope that still allows push and PR.
