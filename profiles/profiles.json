@@ -1,6 +1,5 @@
 {
   "$comment": "Command registry. Adding a command = one entry here + a prompt file. No code changes.",
-  "defaultCommand": "/pi",
   "defaultAutoCommand": "/claude-auto",
   "commands": {
     "/pi": "pi",

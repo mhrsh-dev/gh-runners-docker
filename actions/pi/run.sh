@@ -42,13 +42,19 @@ if [ "${PI_MODE:-comment}" = "comment" ]; then
     '($reg[0].commands) as $cmds
      | ($body | [splits("[[:space:]]+")]) as $tokens
      | [ $tokens[] | select($cmds[.] != null) ]
-     | sort_by(length) | last // $reg[0].defaultCommand')
+     | sort_by(length) | last // ""')
+  # The workflow can only substring-match, so "https://claude.ai/..." reaches
+  # us as a false trigger. A run needs a real command token, standing alone.
+  if [ -z "$command_token" ]; then
+    echo "no command token in the comment; nothing to do"
+    exit 0
+  fi
 fi
 if [ -z "$profile" ]; then
   if [ "${PI_MODE:-comment}" = "auto" ]; then
     profile=$(jq -r '.commands[.defaultAutoCommand] // "pi-auto"' "$registry")
   else
-    profile=$(jq -r --arg c "$command_token" '.commands[$c] // .commands[.defaultCommand]' "$registry")
+    profile=$(jq -r --arg c "$command_token" '.commands[$c]' "$registry")
   fi
 fi
 echo "profile=$profile"

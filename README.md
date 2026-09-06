@@ -67,7 +67,10 @@ gh label create pi-auto --repo <owner/repo>
 things and leaves everything else to the agent:
 
 1. **Dispatch** — tokenises the human's comment and longest-matches it against
-   the keys in `profiles/profiles.json`. Human text, not model output.
+   the keys in `profiles/profiles.json`. Human text, not model output. A comment
+   with no standalone command token exits without running anything, because the
+   workflow filter can only substring-match and a link to `claude.ai` would
+   otherwise trigger a run.
 2. **Context** — generates a markdown block (repo, thread, actor, branch, run
    URL, thread body) and appends it to the system prompt.
 3. **Run** — the profile's `engine` decides the command: `pi --mode json -p -a`
