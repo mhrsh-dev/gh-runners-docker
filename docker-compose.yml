@@ -39,6 +39,9 @@ services:
     environment:
       <<: *runner-env
       RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-agent
+      # Claude Code refuses bypassPermissions as root, and a non-root job user
+      # is the better default anyway.
+      RUN_AS_ROOT: "false"
       LABELS: docker,agent
     volumes:
       - agent-config:/runner-config
@@ -55,6 +58,7 @@ services:
     environment:
       <<: *runner-env
       RUNNER_NAME_PREFIX: ${RUNNER_PREFIX:-runner}-agent-worker
+      RUN_AS_ROOT: "false"
       LABELS: docker,agent-worker
     volumes:
       - agent-worker-config:/runner-config
