@@ -19,4 +19,6 @@ RUN mkdir -p /pi-home/agent && chmod -R 0777 /pi-home
 # Second engine: Claude Code. First-party, so a Claude subscription covers
 # headless CI use; it authenticates from CLAUDE_CODE_OAUTH_TOKEN in the job
 # environment and needs nothing in the credentials volume.
-RUN npm install -g --ignore-scripts @anthropic-ai/claude-code
+# Not --ignore-scripts: the postinstall fetches the platform-native binary, and
+# claude refuses to start without it.
+RUN npm install -g @anthropic-ai/claude-code
